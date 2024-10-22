@@ -7,41 +7,30 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; }
-        #chat { max-width: 600px; margin: 0 auto; }
-        #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
-        #messageInput { width: 80%; }
+        #chat { max-width: 600px; margin: 0 auto; text-align: center; }
+        button { margin: 10px; padding: 10px; }
     </style>
 </head>
 <body>
     <div id="chat">
         <h1>Chat Application</h1>
-        <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Type your message...">
-        <button id="sendButton">Send</button>
+        <button id="startServerButton">Start Server</button>
+        <button id="startClientButton">Start Client</button>
+        <div id="status"></div>
     </div>
+
     <script>
-        const serverURL = 'http://localhost:5000'; // Change this to your Flask server URL
-
-        // Fetch messages from the server
-        function fetchMessages() {
-            $.get(`${serverURL}/messages`, function(data) {
-                $('#messages').html(data.messages.map(msg => `<div>${msg}</div>`).join(''));
-            });
-        }
-
-        // Send a message
-        $('#sendButton').click(function() {
-            const message = $('#messageInput').val();
-            $.post(`${serverURL}/send`, JSON.stringify({ message }), function() {
-                $('#messageInput').val(''); // Clear input
-                fetchMessages(); // Refresh messages
-            }, {
-                contentType: 'application/json',
+        $('#startServerButton').click(function() {
+            $.post('/start_server', function(data) {
+                $('#status').text(data.status);
             });
         });
 
-        // Periodically fetch messages
-        setInterval(fetchMessages, 3000);
+        $('#startClientButton').click(function() {
+            $.post('/start_client', function(data) {
+                $('#status').text(data.status);
+            });
+        });
     </script>
 </body>
 </html>
