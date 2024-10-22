@@ -3,120 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Chat</title>
+    <title>WebRTC Simple Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #messagesList { margin-top: 10px; }
-        li { margin: 5px 0; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input[type="text"] {
+            width: 300px;
+            margin: 10px 0;
+        }
+        button {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>WebRTC Chat</h1>
+    <h1>WebRTC Simple Chat</h1>
+    
     <input type="text" id="peerIdInput" placeholder="Enter Peer ID" />
     <button id="connectButton">Connect</button>
-    <input type="text" id="messageInput" placeholder="Type your message..." />
-    <button id="sendButton">Send</button>
+    
+    <h2>Chat Messages</h2>
     <ul id="messagesList"></ul>
+    
+    <input type="text" id="messageInput" placeholder="Type a message..." />
+    <button id="sendMessageButton">Send</button>
 
     <script>
         const peerIdInput = document.getElementById('peerIdInput');
         const connectButton = document.getElementById('connectButton');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
         const messagesList = document.getElementById('messagesList');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageButton = document.getElementById('sendMessageButton');
 
         let localConnection;
-        let remoteConnection;
         let sendChannel;
-        
-        // Create a new peer connection
+
+        // Create a Peer Connection
         function createConnection() {
             localConnection = new RTCPeerConnection();
-            sendChannel = localConnection.createDataChannel('sendChannel');
-            sendChannel.onopen = () => console.log('Send channel opened');
-            sendChannel.onclose = () => console.log('Send channel closed');
+            sendChannel = localConnection.createDataChannel('chatChannel');
 
-            localConnection.onicecandidate = e => {
-                if (e.candidate) {
-                    // Send the candidate to the remote peer (you need a signaling mechanism)
-                    console.log('ICE candidate', e.candidate);
+            sendChannel.onopen = () => console.log('Data channel is open');
+            sendChannel.onmessage = (event) => displayMessage('Peer: ' + event.data);
+            sendChannel.onclose = () => console.log('Data channel is closed');
+
+            localConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log('New ICE candidate:', event.candidate);
+                    // Send this candidate to the remote peer (for simplicity, we'll log it)
                 }
             };
 
-            localConnection.ondatachannel = event => {
-                const receiveChannel = event.channel;
-                receiveChannel.onmessage = e => {
-                    const li = document.createElement('li');
-                    li.textContent = `Peer: ${e.data}`;
-                    messagesList.appendChild(li);
-                };
-            };
-        }
-
-        // Connect to the peer with the given ID
-        connectButton.addEventListener('click', () => {
-            createConnection();
-            const peerId = peerIdInput.value;
-
-            // Here, you would typically send an offer to the other peer using your signaling method
+            // Create an offer
             localConnection.createOffer()
-                .then(offer => {
+                .then((offer) => {
                     return localConnection.setLocalDescription(offer);
                 })
                 .then(() => {
-                    console.log('Offer sent to peer:', localConnection.localDescription);
-                    // Send offer to the remote peer (you need to implement this part)
+                    console.log('Offer sent:', localConnection.localDescription);
+                    // Here you would send the offer to the other peer through your signaling method
                 })
-                .catch(error => console.error('Error creating offer:', error));
-        });
+                .catch((error) => console.error('Error creating offer:', error));
+        }
 
-        // Send message to the connected peer
-        sendButton.addEventListener('click', () => {
+        // Function to display messages
+        function displayMessage(message) {
+            const li = document.createElement('li');
+            li.textContent = message;
+            messagesList.appendChild(li);
+        }
+
+        // Handle sending messages
+        sendMessageButton.addEventListener('click', () => {
             const message = messageInput.value;
             if (sendChannel && sendChannel.readyState === 'open') {
                 sendChannel.send(message);
-                const li = document.createElement('li');
-                li.textContent = `You: ${message}`;
-                messagesList.appendChild(li);
-                messageInput.value = ''; // Clear input
+                displayMessage('You: ' + message);
+                messageInput.value = ''; // Clear input field
             } else {
-                alert('Connection not established or channel not open');
+                console.log('Data channel is not open. Cannot send message.');
             }
         });
 
-        // Function to handle incoming offers and set up connection
-        function handleIncomingOffer(offer) {
-            remoteConnection = new RTCPeerConnection();
-            remoteConnection.onicecandidate = e => {
-                if (e.candidate) {
-                    console.log('Remote ICE candidate', e.candidate);
-                }
-            };
-
-            remoteConnection.ondatachannel = event => {
-                const receiveChannel = event.channel;
-                receiveChannel.onmessage = e => {
-                    const li = document.createElement('li');
-                    li.textContent = `Peer: ${e.data}`;
-                    messagesList.appendChild(li);
-                };
-            };
-
-            remoteConnection.setRemoteDescription(offer)
-                .then(() => remoteConnection.createAnswer())
-                .then(answer => {
-                    return remoteConnection.setLocalDescription(answer);
-                })
-                .then(() => {
-                    console.log('Answer sent to peer:', remoteConnection.localDescription);
-                    // Send answer back to the original peer (you need to implement this part)
-                })
-                .catch(error => console.error('Error handling offer:', error));
-        }
-
-        // Function to receive remote offer (this would be called when you receive an offer)
-        // handleIncomingOffer(remoteOffer); // Example call with an offer
-
+        // Connect button handler
+        connectButton.addEventListener('click', () => {
+            createConnection();
+            // Normally, you would receive the offer here and set it as the remote description
+            // This example skips signaling for simplicity
+        });
     </script>
 </body>
 </html>
