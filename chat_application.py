@@ -1,7 +1,8 @@
 import socket
 import threading
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 
 # Constants
 SERVER_PORT = 5000
@@ -18,6 +19,7 @@ client_count = 0  # Track number of connected clients
 
 # Flask setup
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Function to broadcast messages to all connected clients
 def broadcast(message, sender_socket=None):
@@ -96,6 +98,10 @@ def start_server():
             print("Max clients connected!")
 
 # Flask routes
+@app.route('/')
+def index():
+    return render_template('index.html')  # Serve the HTML interface
+
 @app.route('/messages', methods=['GET'])
 def get_messages():
     return jsonify({'messages': messages})
@@ -112,8 +118,21 @@ def send_message():
 def get_client_count():
     return jsonify({'count': client_count})
 
+# Main function to start the server or client
+def main():
+    role = input("Do you want to be a Server or Client? (s/c): ").strip().lower()
+
+    if role == 's':
+        password = input("Enter server password: ")
+        if password == PASSWORD:
+            start_server()
+        else:
+            print("Incorrect password. Exiting.")
+    elif role == 'c':
+        server_ip = input("Enter server IP address: ")
+        run_client(server_ip)
+    else:
+        print("Invalid choice. Exiting.")
+
 if __name__ == "__main__":
-    # Start the server in a thread
-    server_thread = threading.Thread(target=start_server)
-    server_thread.start()
-    app.run(host='0.0.0.0', port=int(SERVER_PORT), use_reloader=False)  # Start Flask server
+    main()
