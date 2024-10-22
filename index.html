@@ -21,8 +21,12 @@
 <body>
     <h1>WebRTC Simple Chat</h1>
     
-    <input type="text" id="peerIdInput" placeholder="Enter Peer ID" />
-    <button id="connectButton">Connect</button>
+    <h2>Signaling</h2>
+    <input type="text" id="offerInput" placeholder="Enter Offer SDP" />
+    <button id="setOfferButton">Set Offer</button>
+    
+    <input type="text" id="answerInput" placeholder="Enter Answer SDP" />
+    <button id="setAnswerButton">Set Answer</button>
     
     <h2>Chat Messages</h2>
     <ul id="messagesList"></ul>
@@ -31,8 +35,10 @@
     <button id="sendMessageButton" disabled>Send</button>
 
     <script>
-        const peerIdInput = document.getElementById('peerIdInput');
-        const connectButton = document.getElementById('connectButton');
+        const offerInput = document.getElementById('offerInput');
+        const setOfferButton = document.getElementById('setOfferButton');
+        const answerInput = document.getElementById('answerInput');
+        const setAnswerButton = document.getElementById('setAnswerButton');
         const messagesList = document.getElementById('messagesList');
         const messageInput = document.getElementById('messageInput');
         const sendMessageButton = document.getElementById('sendMessageButton');
@@ -51,7 +57,6 @@
             localConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     console.log('New ICE candidate:', event.candidate);
-                    // Send this candidate to the remote peer
                 }
             };
 
@@ -60,8 +65,8 @@
                     return localConnection.setLocalDescription(offer);
                 })
                 .then(() => {
+                    offerInput.value = JSON.stringify(localConnection.localDescription); // Show offer in input
                     console.log('Offer sent:', localConnection.localDescription);
-                    // Normally, send this offer to the other peer here
                 })
                 .catch((error) => console.error('Error creating offer:', error));
         }
@@ -96,12 +101,35 @@
             }
         });
 
-        // Connect button handler
-        connectButton.addEventListener('click', () => {
-            createConnection();
-            // Normally, you would receive the offer here and set it as the remote description
-            // For simplicity, we skip signaling
+        // Set Offer Button Handler
+        setOfferButton.addEventListener('click', () => {
+            const offer = JSON.parse(offerInput.value);
+            localConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => {
+                    return localConnection.createAnswer();
+                })
+                .then((answer) => {
+                    return localConnection.setLocalDescription(answer);
+                })
+                .then(() => {
+                    answerInput.value = JSON.stringify(localConnection.localDescription); // Show answer in input
+                    console.log('Answer sent:', localConnection.localDescription);
+                })
+                .catch((error) => console.error('Error setting offer or creating answer:', error));
         });
+
+        // Set Answer Button Handler
+        setAnswerButton.addEventListener('click', () => {
+            const answer = JSON.parse(answerInput.value);
+            localConnection.setRemoteDescription(new RTCSessionDescription(answer))
+                .then(() => {
+                    console.log('Remote answer set');
+                })
+                .catch((error) => console.error('Error setting answer:', error));
+        });
+
+        // Create the initial connection
+        createConnection();
     </script>
 </body>
 </html>
