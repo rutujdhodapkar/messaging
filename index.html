@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-top: 10px; }
+        #input-box { margin-top: 10px; }
+        #role-selection { margin-bottom: 20px; }
+        #chat-section { display: none; }
+        #status { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Chat Application</h1>
+
+    <div id="role-selection">
+        <button onclick="selectRole('server')">Start as Server</button>
+        <button onclick="selectRole('client')">Start as Client</button>
+    </div>
+
+    <div id="chat-section">
+        <div id="status"></div> <!-- Status updates will be displayed here -->
+        <div id="chat-box"></div>
+        <div id="input-box">
+            <input type="text" id="message-input" placeholder="Type your message here..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let role; // To keep track of the selected role
+        let serverIp = ""; // Store server IP
+        let serverPort = 5000; // Default server port
+
+        function selectRole(selectedRole) {
+            role = selectedRole; // Set the role based on button clicked
+            document.getElementById('role-selection').style.display = 'none'; // Hide role selection
+            document.getElementById('chat-section').style.display = 'block'; // Show chat section
+            updateStatus(`You are starting as a ${role}.`); // Update status message
+
+            if (role === 'server') {
+                // Logic to start the server (You would implement WebSocket or HTTP connection here)
+                updateStatus("Starting server...");
+                startServer(); // Call the function to start the server
+            } else if (role === 'client') {
+                // Logic to start the client
+                updateStatus("Connecting to server...");
+                discoverServer(); // Call the function to discover the server
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerText = message; // Update status text
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('message-input').value;
+            if (message.trim()) {
+                // Logic to send message to the server
+                // Add the message to chat box
+                document.getElementById('chat-box').innerHTML += `<div>${message}</div>`;
+                document.getElementById('message-input').value = '';
+            }
+        }
+
+        function startServer() {
+            // Replace this with the actual server starting logic
+            // Simulating server operations for demonstration
+            updateStatus("Server is running on IP: 127.0.0.1, Port: " + serverPort);
+            setTimeout(() => {
+                // Simulate a client connecting
+                updateStatus("Client connected.");
+            }, 2000); // Simulate a client connection after 2 seconds
+
+            setTimeout(() => {
+                // Simulate a client disconnecting
+                updateStatus("Client disconnected.");
+            }, 4000); // Simulate a client disconnection after 4 seconds
+        }
+
+        function discoverServer() {
+            // Replace this with actual server discovery logic
+            // Simulating server discovery for demonstration
+            serverIp = "127.0.0.1"; // Simulate server IP
+            updateStatus(`Connected to server at IP: ${serverIp}, Port: ${serverPort}`);
+        }
+    </script>
+</body>
+</html>
