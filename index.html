@@ -28,7 +28,7 @@
     <ul id="messagesList"></ul>
     
     <input type="text" id="messageInput" placeholder="Type a message..." />
-    <button id="sendMessageButton">Send</button>
+    <button id="sendMessageButton" disabled>Send</button>
 
     <script>
         const peerIdInput = document.getElementById('peerIdInput');
@@ -43,29 +43,38 @@
         // Create a Peer Connection
         function createConnection() {
             localConnection = new RTCPeerConnection();
-            sendChannel = localConnection.createDataChannel('chatChannel');
 
-            sendChannel.onopen = () => console.log('Data channel is open');
-            sendChannel.onmessage = (event) => displayMessage('Peer: ' + event.data);
-            sendChannel.onclose = () => console.log('Data channel is closed');
+            // Create a data channel
+            sendChannel = localConnection.createDataChannel('chatChannel');
+            setupDataChannelListeners(sendChannel);
 
             localConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     console.log('New ICE candidate:', event.candidate);
-                    // Send this candidate to the remote peer (for simplicity, we'll log it)
+                    // Send this candidate to the remote peer
                 }
             };
 
-            // Create an offer
             localConnection.createOffer()
                 .then((offer) => {
                     return localConnection.setLocalDescription(offer);
                 })
                 .then(() => {
                     console.log('Offer sent:', localConnection.localDescription);
-                    // Here you would send the offer to the other peer through your signaling method
+                    // Normally, send this offer to the other peer here
                 })
                 .catch((error) => console.error('Error creating offer:', error));
+        }
+
+        // Set up the data channel listeners
+        function setupDataChannelListeners(channel) {
+            channel.onopen = () => {
+                console.log('Data channel is open');
+                sendMessageButton.disabled = false; // Enable send button
+            };
+
+            channel.onmessage = (event) => displayMessage('Peer: ' + event.data);
+            channel.onclose = () => console.log('Data channel is closed');
         }
 
         // Function to display messages
@@ -91,7 +100,7 @@
         connectButton.addEventListener('click', () => {
             createConnection();
             // Normally, you would receive the offer here and set it as the remote description
-            // This example skips signaling for simplicity
+            // For simplicity, we skip signaling
         });
     </script>
 </body>
