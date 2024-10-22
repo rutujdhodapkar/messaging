@@ -103,6 +103,12 @@ def discover_server():
             print(f"Server found at {addr[0]}:{SERVER_PORT}")
             return addr[0]
 
+# Function to check if the server is running
+def is_server_running():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        result = sock.connect_ex(('localhost', SERVER_PORT))
+        return result == 0  # Return True if the connection was successful (server is running)
+
 # Function to run the client
 def run_client():
     server_ip = discover_server()
@@ -132,7 +138,11 @@ def run_client():
 
 # Main function to start server or client
 def main():
-    role = input("Do you want to be a Server or Client? (s/c): ").strip().lower()
+    if is_server_running():
+        print("Server is already running.")
+        role = 'c'  # Automatically run as client
+    else:
+        role = input("Do you want to be a Server or Client? (s/c): ").strip().lower()
 
     if role == 's':
         password = input("Enter server password: ")
