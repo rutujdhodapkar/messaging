@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Simple Chat</title>
+    <title>WebRTC Chat</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,34 +19,28 @@
     </style>
 </head>
 <body>
-    <h1>WebRTC Simple Chat</h1>
-    
-    <h2>Signaling</h2>
-    <input type="text" id="offerInput" placeholder="Enter Offer SDP" />
-    <button id="setOfferButton">Set Offer</button>
-    
-    <input type="text" id="answerInput" placeholder="Enter Answer SDP" />
-    <button id="setAnswerButton">Set Answer</button>
-    
-    <h2>Chat Messages</h2>
+    <h1>WebRTC Peer-to-Peer Chat</h1>
+    <div>
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button id="sendMessageButton">Send</button>
+    </div>
     <ul id="messagesList"></ul>
-    
-    <input type="text" id="messageInput" placeholder="Type a message..." />
-    <button id="sendMessageButton" disabled>Send</button>
+
+    <h2>Connection Info</h2>
+    <textarea id="connectionInfo" placeholder="Paste connection info here..."></textarea>
+    <button id="connectButton">Connect</button>
 
     <script>
-        const offerInput = document.getElementById('offerInput');
-        const setOfferButton = document.getElementById('setOfferButton');
-        const answerInput = document.getElementById('answerInput');
-        const setAnswerButton = document.getElementById('setAnswerButton');
-        const messagesList = document.getElementById('messagesList');
-        const messageInput = document.getElementById('messageInput');
-        const sendMessageButton = document.getElementById('sendMessageButton');
-
         let localConnection;
         let sendChannel;
 
-        // Create a Peer Connection
+        const messagesList = document.getElementById('messagesList');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageButton = document.getElementById('sendMessageButton');
+        const connectionInfo = document.getElementById('connectionInfo');
+        const connectButton = document.getElementById('connectButton');
+
+        // Create a new Peer Connection and Data Channel
         function createConnection() {
             localConnection = new RTCPeerConnection();
 
@@ -65,7 +59,7 @@
                     return localConnection.setLocalDescription(offer);
                 })
                 .then(() => {
-                    offerInput.value = JSON.stringify(localConnection.localDescription); // Show offer in input
+                    connectionInfo.value = JSON.stringify(localConnection.localDescription); // Show offer
                     console.log('Offer sent:', localConnection.localDescription);
                 })
                 .catch((error) => console.error('Error creating offer:', error));
@@ -89,7 +83,7 @@
             messagesList.appendChild(li);
         }
 
-        // Handle sending messages
+        // Send a message
         sendMessageButton.addEventListener('click', () => {
             const message = messageInput.value;
             if (sendChannel && sendChannel.readyState === 'open') {
@@ -101,10 +95,10 @@
             }
         });
 
-        // Set Offer Button Handler
-        setOfferButton.addEventListener('click', () => {
-            const offer = JSON.parse(offerInput.value);
-            localConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        // Connect button handler
+        connectButton.addEventListener('click', () => {
+            const connectionInfoValue = JSON.parse(connectionInfo.value);
+            localConnection.setRemoteDescription(new RTCSessionDescription(connectionInfoValue))
                 .then(() => {
                     return localConnection.createAnswer();
                 })
@@ -112,20 +106,10 @@
                     return localConnection.setLocalDescription(answer);
                 })
                 .then(() => {
-                    answerInput.value = JSON.stringify(localConnection.localDescription); // Show answer in input
+                    connectionInfo.value = JSON.stringify(localConnection.localDescription); // Show answer
                     console.log('Answer sent:', localConnection.localDescription);
                 })
                 .catch((error) => console.error('Error setting offer or creating answer:', error));
-        });
-
-        // Set Answer Button Handler
-        setAnswerButton.addEventListener('click', () => {
-            const answer = JSON.parse(answerInput.value);
-            localConnection.setRemoteDescription(new RTCSessionDescription(answer))
-                .then(() => {
-                    console.log('Remote answer set');
-                })
-                .catch((error) => console.error('Error setting answer:', error));
         });
 
         // Create the initial connection
