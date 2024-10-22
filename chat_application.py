@@ -118,21 +118,15 @@ def send_message():
 def get_client_count():
     return jsonify({'count': client_count})
 
-# Main function to start the server or client
-def main():
-    role = input("Do you want to be a Server or Client? (s/c): ").strip().lower()
+@app.route('/start_server', methods=['POST'])
+def start_flask_server():
+    threading.Thread(target=start_server).start()
+    return jsonify({"status": "Server starting..."}), 200
 
-    if role == 's':
-        password = input("Enter server password: ")
-        if password == PASSWORD:
-            start_server()
-        else:
-            print("Incorrect password. Exiting.")
-    elif role == 'c':
-        server_ip = input("Enter server IP address: ")
-        run_client(server_ip)
-    else:
-        print("Invalid choice. Exiting.")
+@app.route('/start_client', methods=['POST'])
+def start_flask_client():
+    # This is where you would implement client functionality.
+    return jsonify({"status": "Client function not implemented in this demo."}), 200
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
