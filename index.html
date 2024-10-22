@@ -53,39 +53,62 @@
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
 
-    const socket = new WebSocket('ws://localhost:5000'); // Adjust if needed
+    let serverURL = 'http://localhost:5000'; // Adjust if needed
 
-    socket.onopen = () => {
-        statusDiv.innerText = 'Status: Connected';
-    };
+    // Function to fetch messages
+    async function fetchMessages() {
+        try {
+            const response = await fetch(`${serverURL}/messages`);
+            const data = await response.json();
+            data.messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                messageElement.innerText = message;
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
+            });
+        } catch (error) {
+            console.error("Error fetching messages:", error);
+        }
+    }
 
-    socket.onmessage = (event) => {
-        const message = event.data;
-        const messageElement = document.createElement('div');
-        messageElement.innerText = message;
-        messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
-    };
+    // Function to send a message
+    async function sendMessage(message) {
+        try {
+            await fetch(`${serverURL}/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
+    }
 
-    socket.onclose = () => {
-        statusDiv.innerText = 'Status: Disconnected';
-    };
+    // Update client count
+    async function updateClientCount() {
+        try {
+            const response = await fetch(`${serverURL}/clients`);
+            const data = await response.json();
+            clientCountDiv.innerText = `Connected Clients: ${data.count}`;
+        } catch (error) {
+            console.error("Error fetching client count:", error);
+        }
+    }
 
+    // Event listeners
     sendButton.onclick = () => {
         const message = messageInput.value;
         if (message.trim()) {
-            socket.send(message);
+            sendMessage(message);
             messageInput.value = '';
         }
     };
 
-    // Update connected clients count
-    function updateClientCount(count) {
-        clientCountDiv.innerText = `Connected Clients: ${count}`;
-    }
-
-    // Example: Call this function whenever the client count changes
-    // updateClientCount(3); // Set it to the actual count as per your application logic
+    // Polling for new messages and updating client count every 2 seconds
+    setInterval(() => {
+        fetchMessages();
+        updateClientCount();
+    }, 2000);
 </script>
 
 </body>
