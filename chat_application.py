@@ -116,4 +116,4 @@ if __name__ == "__main__":
     # Start the server in a thread
     server_thread = threading.Thread(target=start_server)
     server_thread.start()
-    app.run(port=5000, use_reloader=False)  # Start Flask server
+    app.run(host='0.0.0.0', port=int(SERVER_PORT), use_reloader=False)  # Start Flask server
