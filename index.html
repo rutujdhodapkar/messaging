@@ -3,33 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Application</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Multi-Peer Chat Application</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #chat { max-width: 600px; margin: 0 auto; text-align: center; }
-        button { margin: 10px; padding: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chatContainer {
+            margin-top: 20px;
+        }
+        #messages {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: scroll;
+        }
+        #messages li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <div id="chat">
-        <h1>Chat Application</h1>
-        <button id="startServerButton">Start Server</button>
-        <button id="startClientButton">Start Client</button>
-        <div id="status"></div>
+    <h1>Multi-Peer Chat Application</h1>
+    <input type="text" id="peerIdInput" placeholder="Enter your peer ID..." />
+    <button id="connectButton">Connect</button>
+    <input type="text" id="messageInput" placeholder="Type a message..." />
+    <button id="sendMessageButton">Send</button>
+
+    <div id="chatContainer">
+        <ul id="messages"></ul>
     </div>
 
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        $('#startServerButton').click(function() {
-            $.post('/start_server', function(data) {
-                $('#status').text(data.status);
-            });
+        const socket = io('http://localhost:3000'); // Ensure your signaling server is running here
+        const peerIdInput = document.getElementById('peerIdInput');
+        const connectButton = document.getElementById('connectButton');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageButton = document.getElementById('sendMessageButton');
+        const messagesList = document.getElementById('messages');
+
+        let localPeerConnection;
+        const peers = {}; // Store connected peers
+
+        // Connect to signaling server and join a room
+        connectButton.addEventListener('click', () => {
+            const peerId = peerIdInput.value;
+            if (!peerId) {
+                alert('Please enter a peer ID!');
+                return;
+            }
+            setupConnection(peerId);
         });
 
-        $('#startClientButton').click(function() {
-            $.post('/start_client', function(data) {
-                $('#status').text(data.status);
+        sendMessageButton.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (!message) return;
+
+            // Send message to all connected peers
+            Object.keys(peers).forEach(peerId => {
+                if (peers[peerId].readyState === 'open') { // Check if the channel is open
+                    peers[peerId].send(message);
+                } else {
+                    console.error(`Cannot send message to ${peerId}: Data channel is not open.`);
+                }
             });
+            displayMessage(`You: ${message}`);
+            messageInput.value = '';
+        });
+
+        // Function to display messages
+        function displayMessage(message) {
+            const li = document.createElement('li');
+            li.textContent = message;
+            messagesList.appendChild(li);
+        }
+
+        // WebRTC setup
+        async function setupConnection(peerId) {
+            const peerConnection = new RTCPeerConnection();
+
+            // Handle received messages
+            peerConnection.ondatachannel = (event) => {
+                const channel = event.channel;
+                channel.onmessage = (event) => {
+                    displayMessage(`Peer ${channel.label}: ${event.data}`);
+                };
+                channel.onopen = () => {
+                    console.log(`Data channel to ${peerId} is open`);
+                };
+                channel.onclose = () => {
+                    console.log(`Data channel to ${peerId} is closed`);
+                    delete peers[peerId]; // Remove the peer if the channel is closed
+                };
+            };
+
+            const channel = peerConnection.createDataChannel(peerId);
+            peers[peerId] = channel;
+
+            channel.onopen = () => {
+                console.log(`Data channel to ${peerId} is open`);
+            };
+
+            channel.onclose = () => {
+                console.log(`Data channel to ${peerId} is closed`);
+                delete peers[peerId]; // Clean up when the channel closes
+            };
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('signal', {
+                        to: peerId,
+                        signal: event.candidate,
+                    });
+                }
+            };
+
+            localPeerConnection = peerConnection;
+
+            // Create an offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.emit('signal', {
+                to: peerId,
+                signal: offer,
+            });
+        }
+
+        // Handle signaling messages
+        socket.on('signal', async (data) => {
+            if (data.signal) {
+                if (data.signal.type === 'offer') {
+                    const peerId = data.from;
+                    await localPeerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+                    const answer = await localPeerConnection.createAnswer();
+                    await localPeerConnection.setLocalDescription(answer);
+                    socket.emit('signal', { to: peerId, signal: answer });
+                } else if (data.signal.type === 'answer') {
+                    await localPeerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+                } else {
+                    // Handle ICE candidates
+                    await localPeerConnection.addIceCandidate(new RTCIceCandidate(data.signal));
+                }
+            }
         });
     </script>
 </body>
